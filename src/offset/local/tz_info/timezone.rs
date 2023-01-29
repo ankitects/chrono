@@ -6,6 +6,8 @@ use std::path::{Path, PathBuf};
 use std::{cmp::Ordering, fmt, str};
 
 use super::rule::{AlternateTime, TransitionRule};
+#[cfg(target_os = "android")]
+use super::tzdata;
 use super::{parser, Error, DAYS_PER_WEEK, SECONDS_PER_DAY};
 
 /// Time zone
@@ -50,6 +52,13 @@ impl TimeZone {
 
         if let Ok(mut file) = find_tz_file(tz_string) {
             return Self::from_file(&mut file);
+        }
+
+        #[cfg(target_os = "android")]
+        if let Ok(mut file) = tzdata::find_file() {
+            if let Ok(bytes) = tzdata::find_tz_data_in_file(&mut file, tz_string) {
+                return Self::from_tz_data(&bytes);
+            }
         }
 
         // TZ string extensions are not allowed
