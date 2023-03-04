@@ -8,6 +8,9 @@ use std::{cmp::Ordering, fmt, str};
 use super::rule::{AlternateTime, TransitionRule};
 use super::{parser, Error, DAYS_PER_WEEK, SECONDS_PER_DAY};
 
+#[cfg(target_os = "android")]
+extern crate android_tzdata;
+
 /// Time zone
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub(crate) struct TimeZone {
@@ -50,6 +53,14 @@ impl TimeZone {
 
         if let Ok(mut file) = find_tz_file(tz_string) {
             return Self::from_file(&mut file);
+        }
+
+        // attributes are not allowed on if blocks in Rust 1.38
+        #[cfg(target_os = "android")]
+        {
+            if let Ok(bytes) = android_tzdata::find_tz_data(tz_string) {
+                return Self::from_tz_data(&bytes);
+            }
         }
 
         // TZ string extensions are not allowed
